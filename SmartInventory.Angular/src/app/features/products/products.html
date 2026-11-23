@@ -1,0 +1,422 @@
+<div class="products-page">
+
+  <div class="page-heading">
+    <div>
+      <h2>Products Management</h2>
+      <p>Manage your inventory products, pricing and categories.</p>
+    </div>
+
+    @if (canManage()) {
+      <button class="btn-primary-custom" (click)="openAddForm()">
+        <i class="bi bi-plus-lg"></i>
+        Add Product
+      </button>
+    }
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert-message success-message">
+      <i class="bi bi-check-circle-fill"></i>
+      {{ successMessage() }}
+      <button (click)="successMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-message error-message">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      {{ errorMessage() }}
+      <button (click)="errorMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon total-icon">
+        <i class="bi bi-box-seam"></i>
+      </div>
+      <div>
+        <span>Total Products</span>
+        <h3>{{ totalProducts() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon active-icon">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <span>Active Products</span>
+        <h3>{{ activeProducts() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon inactive-icon">
+        <i class="bi bi-pause-circle"></i>
+      </div>
+      <div>
+        <span>Inactive Products</span>
+        <h3>{{ inactiveProducts() }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="products-card">
+
+    <div class="table-header">
+      <div>
+        <h3>All Products</h3>
+        <p>View and manage your product inventory</p>
+      </div>
+
+      <span class="total-badge">
+        {{ filteredProducts().length }} Products
+      </span>
+    </div>
+
+    <div class="filters-row">
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search product, SKU or category..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      <div class="category-filter">
+        <i class="bi bi-funnel"></i>
+        <select
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="selectedCategory.set($event)"
+        >
+          <option value="">All Categories</option>
+          @for (category of categories(); track category.categoryId) {
+            <option [value]="category.categoryId">
+              {{ category.categoryName }}
+            </option>
+          }
+        </select>
+      </div>
+
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner-border text-primary"></div>
+        <p>Loading products...</p>
+      </div>
+    } @else {
+
+      <div class="table-responsive">
+        <table class="products-table">
+
+          <thead>
+            <tr>
+              <th>PRODUCT</th>
+              <th>SKU</th>
+              <th>CATEGORY</th>
+              <th>PURCHASE PRICE</th>
+              <th>SELLING PRICE</th>
+              <th>REORDER LEVEL</th>
+              <th>STATUS</th>
+              @if (canManage() || canDelete()) {
+                <th class="text-center">ACTIONS</th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+
+            @for (product of filteredProducts(); track product.productId) {
+              <tr>
+
+                <td>
+                  <div class="product-info">
+                    <div class="product-avatar">
+                      <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div>
+                      <strong>{{ product.productName }}</strong>
+                      <small>#{{ product.productId }}</small>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <span class="sku-badge">{{ product.sku }}</span>
+                </td>
+
+                <td>{{ product.categoryName }}</td>
+
+                <td class="price-cell">
+                  ₹{{ product.purchasePrice | number:'1.2-2' }}
+                </td>
+
+                <td class="price-cell selling-price">
+                  ₹{{ product.sellingPrice | number:'1.2-2' }}
+                </td>
+
+                <td>
+                  <span class="reorder-badge">
+                    {{ product.reorderLevel }}
+                  </span>
+                </td>
+
+                <td>
+                  @if (product.isActive) {
+                    <span class="status-badge active-status">
+                      Active
+                    </span>
+                  } @else {
+                    <span class="status-badge inactive-status">
+                      Inactive
+                    </span>
+                  }
+                </td>
+
+                @if (canManage() || canDelete()) {
+                  <td>
+                    <div class="action-buttons">
+
+                      @if (canManage()) {
+                        <button
+                          class="action-btn edit-btn"
+                          title="Edit Product"
+                          (click)="openEditForm(product)"
+                        >
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                      }
+
+                      @if (canDelete()) {
+                        <button
+                          class="action-btn delete-btn"
+                          title="Delete Product"
+                          (click)="deleteProduct(product)"
+                        >
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      }
+
+                    </div>
+                  </td>
+                }
+
+              </tr>
+            } @empty {
+
+              <tr>
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h4>No Products Found</h4>
+                    <p>Try changing your search or category filter.</p>
+                  </div>
+                </td>
+              </tr>
+
+            }
+
+          </tbody>
+
+        </table>
+      </div>
+
+    }
+
+  </div>
+
+  @if (showForm()) {
+
+    <div class="modal-backdrop-custom" (click)="closeForm()">
+
+      <div class="product-modal" (click)="$event.stopPropagation()">
+
+        <div class="modal-header-custom">
+          <div>
+            <h3>{{ isEditMode() ? 'Edit Product' : 'Add New Product' }}</h3>
+            <p>
+              {{ isEditMode() ? 'Update product information' : 'Enter product details below' }}
+            </p>
+          </div>
+
+          <button class="modal-close-btn" (click)="closeForm()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <form (ngSubmit)="saveProduct()" #productForm="ngForm">
+
+          <div class="modal-body-custom">
+
+            @if (errorMessage()) {
+              <div class="alert-message error-message">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                {{ errorMessage() }}
+              </div>
+            }
+
+            <div class="form-section-title">
+              <i class="bi bi-box-seam"></i>
+              Basic Information
+            </div>
+
+            <div class="form-group-custom">
+              <label>Product Name <span>*</span></label>
+              <input
+                type="text"
+                name="productName"
+                [(ngModel)]="productName"
+                required
+                maxlength="150"
+                placeholder="Enter product name"
+              />
+            </div>
+
+            <div class="form-row-custom">
+
+              <div class="form-group-custom">
+                <label>SKU <span>*</span></label>
+                <input
+                  type="text"
+                  name="sku"
+                  [(ngModel)]="sku"
+                  required
+                  maxlength="50"
+                  placeholder="e.g. PROD-001"
+                />
+              </div>
+
+              <div class="form-group-custom">
+                <label>Category <span>*</span></label>
+                <select
+                  name="categoryId"
+                  [(ngModel)]="categoryId"
+                  required
+                >
+                  <option [ngValue]="null" disabled>Select Category</option>
+                  @for (category of categories(); track category.categoryId) {
+                    <option [ngValue]="category.categoryId">
+                      {{ category.categoryName }}
+                    </option>
+                  }
+                </select>
+              </div>
+
+            </div>
+
+            <div class="form-group-custom">
+              <label>Description</label>
+              <textarea
+                name="description"
+                [(ngModel)]="description"
+                rows="3"
+                maxlength="500"
+                placeholder="Enter product description"
+              ></textarea>
+            </div>
+
+            <div class="form-section-title pricing-title">
+              <i class="bi bi-currency-rupee"></i>
+              Pricing & Inventory Settings
+            </div>
+
+            <div class="form-row-custom">
+
+              <div class="form-group-custom">
+                <label>Purchase Price (₹) <span>*</span></label>
+                <input
+                  type="number"
+                  name="purchasePrice"
+                  [(ngModel)]="purchasePrice"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div class="form-group-custom">
+                <label>Selling Price (₹) <span>*</span></label>
+                <input
+                  type="number"
+                  name="sellingPrice"
+                  [(ngModel)]="sellingPrice"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+
+            </div>
+
+            <div class="form-group-custom">
+              <label>Reorder Level <span>*</span></label>
+              <input
+                type="number"
+                name="reorderLevel"
+                [(ngModel)]="reorderLevel"
+                required
+                min="0"
+                step="1"
+                placeholder="Enter minimum stock level"
+              />
+              <small>Minimum stock quantity at which replenishment is needed.</small>
+            </div>
+
+            @if (isEditMode()) {
+              <div class="form-group-custom status-form-group">
+                <label>Product Status</label>
+                <select name="isActive" [(ngModel)]="isActive">
+                  <option [ngValue]="true">Active</option>
+                  <option [ngValue]="false">Inactive</option>
+                </select>
+              </div>
+            }
+
+          </div>
+
+          <div class="modal-footer-custom">
+            <button
+              type="button"
+              class="btn-cancel"
+              (click)="closeForm()"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="btn-primary-custom"
+              [disabled]="isSaving() || productForm.invalid"
+            >
+              @if (isSaving()) {
+                <span class="spinner-border spinner-border-sm"></span>
+                Saving...
+              } @else {
+                <i class="bi bi-check-lg"></i>
+                {{ isEditMode() ? 'Update Product' : 'Save Product' }}
+              }
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  }
+
+</div>

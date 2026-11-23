@@ -1,0 +1,207 @@
+<div class="admin-wrapper">
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" [class.show]="isSidebarOpen" (click)="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.sidebar-open]="isSidebarOpen">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="bi bi-box-seam"></i>
+      </div>
+
+      <div>
+        <h5>SmartInventory</h5>
+        <span>Management System</span>
+      </div>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- Overview -->
+      <div class="nav-heading">OVERVIEW</div>
+
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-grid-1x2"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Master Management -->
+      <div class="nav-heading">MASTER MANAGEMENT</div>
+
+      <a
+        routerLink="/products"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-box"></i>
+        <span>Products</span>
+      </a>
+
+      <a
+        routerLink="/categories"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-tags"></i>
+        <span>Categories</span>
+      </a>
+
+      <a
+        routerLink="/suppliers"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-truck"></i>
+        <span>Suppliers</span>
+      </a>
+
+      <a
+        routerLink="/warehouses"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-building"></i>
+        <span>Warehouses</span>
+      </a>
+
+      <a
+        routerLink="/customers"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-people"></i>
+        <span>Customers</span>
+      </a>
+
+      <!-- Operations -->
+      <div class="nav-heading">OPERATIONS</div>
+
+      <a
+        routerLink="/inventory"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-boxes"></i>
+        <span>Inventory</span>
+      </a>
+
+      <a
+        routerLink="/purchase-orders"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-receipt"></i>
+        <span>Purchase Orders</span>
+      </a>
+
+      <!-- Sales Orders -->
+      <a
+        routerLink="/sales-orders"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-cart-check"></i>
+        <span>Sales Orders</span>
+      </a>
+
+      <!-- Payments -->
+      <a
+        routerLink="/payments"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-credit-card"></i>
+        <span>Payments</span>
+      </a>
+      <a
+        routerLink="/stock-transfers"
+        routerLinkActive="active"
+        class="nav-link-item"
+        (click)="closeSidebar()"
+      >
+        <i class="bi bi-arrow-left-right"></i>
+        <span>Stock Transfers</span>
+      </a>
+      <!-- Insights -->
+      <div class="nav-heading">INSIGHTS</div>
+
+      <a routerLink="/reports" routerLinkActive="active" class="nav-link-item">
+        <span class="nav-icon">📊</span>
+        <span>Reports</span>
+      </a>
+
+      <a routerLink="/audit-logs" routerLinkActive="active" class="nav-link-item">
+        <span class="nav-icon">📋</span>
+        <span>Audit Logs</span>
+      </a>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="footer-icon">
+        <i class="bi bi-shield-check"></i>
+      </div>
+
+      <div>
+        <strong>Secure Workspace</strong>
+        <span>System protected</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <main class="main-area">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" type="button" (click)="toggleSidebar()">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <div>
+          <h6>Inventory Management</h6>
+          <span>Manage your business operations</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- User Profile -->
+        <div class="user-profile">
+          <div class="user-avatar">
+            {{ user?.fullName?.charAt(0) || 'U' }}
+          </div>
+
+          <div class="user-info">
+            <strong>{{ user?.fullName }}</strong>
+            <span>{{ user?.roles?.join(', ') }}</span>
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <button class="logout-button" type="button" (click)="logout()" title="Logout">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <section class="page-content">
+      <router-outlet></router-outlet>
+    </section>
+  </main>
+</div>

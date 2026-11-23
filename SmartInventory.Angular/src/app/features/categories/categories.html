@@ -1,0 +1,271 @@
+
+<div class="categories-page">
+
+  <div class="page-heading">
+    <div>
+      <h2>Categories</h2>
+      <p>Organize and manage your product categories.</p>
+    </div>
+
+    <div class="heading-actions">
+      <button class="refresh-button" (click)="refreshCategories()">
+        <i class="bi bi-arrow-clockwise"></i>
+        Refresh
+      </button>
+
+      @if (canManage) {
+        <button class="primary-button" (click)="openCreateForm()">
+          <i class="bi bi-plus-lg"></i>
+          Add Category
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert-message success-message">
+      <i class="bi bi-check-circle"></i>
+      {{ successMessage() }}
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-message error-message">
+      <i class="bi bi-exclamation-circle"></i>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon total-icon">
+        <i class="bi bi-tags"></i>
+      </div>
+      <div>
+        <span>Total Categories</span>
+        <h3>{{ categories().length }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon active-icon">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <span>Active Categories</span>
+        <h3>{{ activeCount }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon inactive-icon">
+        <i class="bi bi-pause-circle"></i>
+      </div>
+      <div>
+        <span>Inactive Categories</span>
+        <h3>{{ inactiveCount }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  @if (showForm) {
+    <div class="form-card">
+
+      <div class="form-heading">
+        <div>
+          <h3>{{ isEditMode ? 'Edit Category' : 'Add New Category' }}</h3>
+          <p>Enter the category information below.</p>
+        </div>
+
+        <button class="close-button" (click)="cancelForm()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveCategory()">
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="categoryName">Category Name <span>*</span></label>
+            <input
+              id="categoryName"
+              type="text"
+              name="categoryName"
+              [(ngModel)]="categoryName"
+              placeholder="Enter category name"
+              maxlength="100"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description</label>
+            <input
+              id="description"
+              type="text"
+              name="description"
+              [(ngModel)]="description"
+              placeholder="Enter category description"
+              maxlength="500">
+          </div>
+
+          @if (isEditMode) {
+            <div class="form-group status-field">
+              <label for="isActive">Status</label>
+              <select
+                id="isActive"
+                name="isActive"
+                [(ngModel)]="isActive">
+                <option [ngValue]="true">Active</option>
+                <option [ngValue]="false">Inactive</option>
+              </select>
+            </div>
+          }
+
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="cancel-button"
+            (click)="cancelForm()">
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="isSaving()">
+            @if (isSaving()) {
+              <span class="spinner"></span>
+              Saving...
+            } @else {
+              <i class="bi bi-check-lg"></i>
+              {{ isEditMode ? 'Update Category' : 'Save Category' }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  }
+
+  <div class="table-card">
+
+    <div class="table-heading">
+      <div>
+        <h3>All Categories</h3>
+        <p>View and manage your product categories.</p>
+      </div>
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          placeholder="Search categories..."
+          aria-label="Search categories">
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading categories...</p>
+      </div>
+    } @else if (filteredCategories.length === 0) {
+      <div class="empty-state">
+        <i class="bi bi-tags"></i>
+        <h4>No categories found</h4>
+        <p>
+          {{ searchText ? 'Try another search term.' : 'Start by adding your first category.' }}
+        </p>
+        @if (canManage && !searchText) {
+          <button class="primary-button" (click)="openCreateForm()">
+            <i class="bi bi-plus-lg"></i>
+            Add Category
+          </button>
+        }
+      </div>
+    } @else {
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Category ID</th>
+              @if (canManage || canDelete) {
+                <th class="action-column">Actions</th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (category of filteredCategories; track category.categoryId) {
+              <tr>
+                <td>
+                  <div class="category-name">
+                    <div class="category-icon">
+                      <i class="bi bi-tag"></i>
+                    </div>
+                    <strong>{{ category.categoryName }}</strong>
+                  </div>
+                </td>
+
+                <td class="description-cell">
+                  {{ category.description || 'No description' }}
+                </td>
+
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.status-active]="category.isActive"
+                    [class.status-inactive]="!category.isActive">
+                    {{ category.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td class="id-cell">#{{ category.categoryId }}</td>
+
+                @if (canManage || canDelete) {
+                  <td>
+                    <div class="action-buttons">
+                      @if (canManage) {
+                        <button
+                          class="edit-button"
+                          title="Edit category"
+                          (click)="openEditForm(category)">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                      }
+
+                      @if (canDelete) {
+                        <button
+                          class="delete-button"
+                          title="Delete category"
+                          (click)="deleteCategory(category)">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        Showing {{ filteredCategories.length }} of {{ categories().length }} categories
+      </div>
+    }
+
+  </div>
+
+</div>

@@ -1,0 +1,304 @@
+
+<div class="warehouses-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Warehouses Management</h2>
+      <p>Manage your warehouse locations and contact details.</p>
+    </div>
+
+    @if (canManage) {
+      <button class="btn-primary-custom" (click)="openAddForm()">
+        <i class="bi bi-plus-lg"></i>
+        Add Warehouse
+      </button>
+    }
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert-message success-message">
+      <i class="bi bi-check-circle"></i>
+      {{ successMessage() }}
+      <button (click)="successMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-message error-message">
+      <i class="bi bi-exclamation-circle"></i>
+      {{ errorMessage() }}
+      <button (click)="errorMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <!-- Statistics -->
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon total-icon">
+        <i class="bi bi-building"></i>
+      </div>
+      <div>
+        <span>Total Warehouses</span>
+        <h3>{{ totalWarehouses() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon active-icon">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <span>Active Warehouses</span>
+        <h3>{{ activeWarehouses() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon inactive-icon">
+        <i class="bi bi-pause-circle"></i>
+      </div>
+      <div>
+        <span>Inactive Warehouses</span>
+        <h3>{{ inactiveWarehouses() }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Warehouse Table -->
+  <div class="content-card">
+
+    <div class="table-header">
+      <div>
+        <h5>All Warehouses</h5>
+        <p>View and manage your warehouse records.</p>
+      </div>
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search warehouses..."
+          [value]="searchTerm()"
+          (input)="onSearchChange($any($event.target).value)">
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner-border" role="status"></div>
+        <p>Loading warehouses...</p>
+      </div>
+    } @else {
+
+      <div class="table-responsive">
+        <table class="warehouses-table">
+
+          <thead>
+            <tr>
+              <th>WAREHOUSE</th>
+              <th>LOCATION</th>
+              <th>CONTACT NUMBER</th>
+              <th>STATUS</th>
+              @if (canManage) {
+                <th class="text-end">ACTIONS</th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (warehouse of filteredWarehouses(); track warehouse.warehouseId) {
+              <tr>
+
+                <td>
+                  <div class="warehouse-info">
+                    <div class="warehouse-avatar">
+                      <i class="bi bi-building"></i>
+                    </div>
+                    <strong>{{ warehouse.warehouseName }}</strong>
+                  </div>
+                </td>
+
+                <td>
+                  <span class="location-text">
+                    {{ warehouse.location || '—' }}
+                  </span>
+                </td>
+
+                <td>{{ warehouse.contactNumber || '—' }}</td>
+
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.active]="warehouse.isActive"
+                    [class.inactive]="!warehouse.isActive">
+                    {{ warehouse.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                @if (canManage) {
+                  <td>
+                    <div class="action-buttons">
+
+                      <button
+                        class="action-btn edit-btn"
+                        title="Edit Warehouse"
+                        (click)="openEditForm(warehouse)">
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+
+                      @if (isAdmin) {
+                        <button
+                          class="action-btn delete-btn"
+                          title="Delete Warehouse"
+                          (click)="deleteWarehouse(warehouse)">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      }
+
+                    </div>
+                  </td>
+                }
+
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="canManage ? 5 : 4">
+                  <div class="empty-state">
+                    <i class="bi bi-building"></i>
+                    <h6>No warehouses found</h6>
+                    <p>
+                      {{
+                        searchTerm()
+                          ? 'Try another search term.'
+                          : 'Add your first warehouse to get started.'
+                      }}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+
+        </table>
+      </div>
+
+      <div class="table-footer">
+        Showing {{ filteredWarehouses().length }} of {{ totalWarehouses() }} warehouses
+      </div>
+
+    }
+
+  </div>
+
+  <!-- Add / Edit Modal -->
+  @if (showForm()) {
+    <div class="modal-backdrop-custom" (click)="closeForm()">
+
+      <div class="warehouse-modal" (click)="$event.stopPropagation()">
+
+        <div class="modal-header-custom">
+          <div>
+            <h5>{{ isEditMode() ? 'Edit Warehouse' : 'Add New Warehouse' }}</h5>
+            <p>
+              {{
+                isEditMode()
+                  ? 'Update warehouse information.'
+                  : 'Enter the warehouse details below.'
+              }}
+            </p>
+          </div>
+
+          <button class="close-btn" type="button" (click)="closeForm()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <form (ngSubmit)="saveWarehouse()" #warehouseForm="ngForm">
+
+          <div class="modal-body-custom">
+
+            <div class="form-group">
+              <label>Warehouse Name <span>*</span></label>
+              <input
+                type="text"
+                name="warehouseName"
+                [(ngModel)]="formData.warehouseName"
+                placeholder="Enter warehouse name"
+                maxlength="150"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label>Location</label>
+              <textarea
+                name="location"
+                [(ngModel)]="formData.location"
+                placeholder="Enter warehouse location"
+                rows="3"
+                maxlength="300"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Contact Number</label>
+              <input
+                type="text"
+                name="contactNumber"
+                [(ngModel)]="formData.contactNumber"
+                placeholder="Enter contact number"
+                maxlength="20">
+            </div>
+
+            @if (isEditMode()) {
+              <div class="form-group status-field">
+                <label>Warehouse Status</label>
+
+                <label class="switch-label">
+                  <input
+                    type="checkbox"
+                    name="isActive"
+                    [(ngModel)]="formData.isActive">
+                  <span>{{ formData.isActive ? 'Active' : 'Inactive' }}</span>
+                </label>
+              </div>
+            }
+
+          </div>
+
+          <div class="modal-footer-custom">
+            <button
+              type="button"
+              class="btn-cancel"
+              (click)="closeForm()">
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="btn-primary-custom"
+              [disabled]="warehouseForm.invalid || isSaving()">
+
+              @if (isSaving()) {
+                <span class="spinner-border spinner-border-sm"></span>
+                Saving...
+              } @else {
+                <i class="bi bi-check-lg"></i>
+                {{ isEditMode() ? 'Update Warehouse' : 'Save Warehouse' }}
+              }
+
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+  }
+
+</div>

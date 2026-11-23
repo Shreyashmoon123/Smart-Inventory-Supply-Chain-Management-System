@@ -1,0 +1,301 @@
+
+<div class="audit-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Audit Logs</h1>
+      <p>Monitor and review user activities across the system</p>
+    </div>
+
+    <button class="refresh-btn" (click)="refresh()">
+      <span>↻</span> Refresh
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-icon total-icon">≡</div>
+      <div>
+        <span>Total Activities</span>
+        <h2>{{ totalLogs }}</h2>
+        <small>Records matching current filters</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon users-icon">♙</div>
+      <div>
+        <span>Active Users</span>
+        <h2>{{ uniqueUsers }}</h2>
+        <small>Unique users in results</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon today-icon">◷</div>
+      <div>
+        <span>Today's Activities</span>
+        <h2>{{ todayLogs }}</h2>
+        <small>Activities created today</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon action-icon">⚡</div>
+      <div>
+        <span>Action Types</span>
+        <h2>{{ actionCount }}</h2>
+        <small>Different action types</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Audit Logs Panel -->
+  <div class="audit-panel">
+
+    <div class="panel-header">
+      <div>
+        <h2>Activity History</h2>
+        <p>Review system activity and user actions</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+
+      <div class="filters-grid">
+
+        <div class="filter-field">
+          <label>User ID</label>
+          <input
+            type="number"
+            min="1"
+            [(ngModel)]="userId"
+            placeholder="Enter user ID">
+        </div>
+
+        <div class="filter-field">
+          <label>Action</label>
+          <input
+            type="text"
+            [(ngModel)]="action"
+            placeholder="e.g. Create, Update, Delete">
+        </div>
+
+        <div class="filter-field">
+          <label>Entity Name</label>
+          <input
+            type="text"
+            [(ngModel)]="entityName"
+            placeholder="e.g. Product, Customer">
+        </div>
+
+        <div class="filter-field">
+          <label>From Date</label>
+          <input type="date" [(ngModel)]="fromDate">
+        </div>
+
+        <div class="filter-field">
+          <label>To Date</label>
+          <input type="date" [(ngModel)]="toDate">
+        </div>
+
+      </div>
+
+      <div class="filter-actions">
+        <button class="apply-btn" (click)="applyFilters()">
+          Apply Filters
+        </button>
+
+        <button class="reset-btn" (click)="resetFilters()">
+          Reset
+        </button>
+
+        <div class="search-box">
+          <span>⌕</span>
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search activities...">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Error -->
+    <div class="error-message" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="loader"></div>
+      <p>Loading audit logs...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" *ngIf="!loading">
+
+      <table>
+        <thead>
+          <tr>
+            <th>Log ID</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Entity</th>
+            <th>Entity ID</th>
+            <th>Date & Time</th>
+            <th class="text-center">Details</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let log of filteredLogs">
+
+            <td class="log-id">#{{ log.auditLogId }}</td>
+
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar">
+                  {{ (log.userName || 'S').charAt(0).toUpperCase() }}
+                </div>
+
+                <div>
+                  <strong>{{ log.userName || 'System' }}</strong>
+                  <small>
+                    {{ log.userId !== null ? 'User #' + log.userId : 'No user ID' }}
+                  </small>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="action-badge"
+                [ngClass]="log.action.toLowerCase()">
+                {{ log.action }}
+              </span>
+            </td>
+
+            <td>{{ log.entityName || '—' }}</td>
+
+            <td>{{ log.entityId || '—' }}</td>
+
+            <td>
+              <div class="date-cell">
+                <strong>{{ log.createdAt | date:'mediumDate' }}</strong>
+                <small>{{ log.createdAt | date:'shortTime' }}</small>
+              </div>
+            </td>
+
+            <td class="text-center">
+              <button
+                class="details-btn"
+                (click)="viewDetails(log.auditLogId)">
+                View
+              </button>
+            </td>
+
+          </tr>
+
+          <tr *ngIf="filteredLogs.length === 0">
+            <td colspan="7" class="empty-state">
+              <div class="empty-icon">≡</div>
+              <strong>No audit logs found</strong>
+              <p>Try changing your filters or search criteria.</p>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="panel-footer" *ngIf="!loading">
+      Showing {{ filteredLogs.length }} of {{ auditLogs.length }} records
+    </div>
+
+  </div>
+
+  <!-- Details Modal -->
+  <div
+    class="modal-overlay"
+    *ngIf="showDetailsModal"
+    (click)="closeDetails()">
+
+    <div class="details-modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <h2>Audit Log Details</h2>
+          <p>Complete activity information</p>
+        </div>
+
+        <button class="close-btn" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="modal-loading" *ngIf="detailsLoading">
+        <div class="loader"></div>
+        <p>Loading details...</p>
+      </div>
+
+      <div class="details-content" *ngIf="!detailsLoading && selectedLog">
+
+        <div class="detail-highlight">
+          <span>Audit Log</span>
+          <h3>#{{ selectedLog.auditLogId }}</h3>
+          <span class="action-badge"
+            [ngClass]="selectedLog.action.toLowerCase()">
+            {{ selectedLog.action }}
+          </span>
+        </div>
+
+        <div class="detail-grid">
+
+          <div class="detail-item">
+            <label>User Name</label>
+            <strong>{{ selectedLog.userName || 'System' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>User ID</label>
+            <strong>{{ selectedLog.userId ?? '—' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Entity Name</label>
+            <strong>{{ selectedLog.entityName || '—' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Entity ID</label>
+            <strong>{{ selectedLog.entityId || '—' }}</strong>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Date & Time</label>
+            <strong>{{ selectedLog.createdAt | date:'medium' }}</strong>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Activity Details</label>
+            <p>{{ selectedLog.details || 'No additional details available.' }}</p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="reset-btn" (click)="closeDetails()">Close</button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

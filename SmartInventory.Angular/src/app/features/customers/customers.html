@@ -1,0 +1,303 @@
+<div class="customers-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Customers</h2>
+      <p>Manage and maintain your customer information.</p>
+    </div>
+
+    @if (canManage) {
+      <button class="btn-primary" (click)="openAddForm()">
+        <i class="bi bi-plus-lg"></i>
+        Add Customer
+      </button>
+    }
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert-message success">
+      <i class="bi bi-check-circle-fill"></i>
+      {{ successMessage() }}
+      <button (click)="successMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-message error">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      {{ errorMessage() }}
+      <button (click)="errorMessage.set('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon total">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <span>Total Customers</span>
+        <h3>{{ totalCustomers() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon email">
+        <i class="bi bi-envelope-fill"></i>
+      </div>
+      <div>
+        <span>With Email</span>
+        <h3>{{ customersWithEmail() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon no-email">
+        <i class="bi bi-person-fill"></i>
+      </div>
+      <div>
+        <span>Without Email</span>
+        <h3>{{ customersWithoutEmail() }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="table-card">
+
+    <div class="table-toolbar">
+      <div>
+        <h3>Customer Directory</h3>
+        <p>View and manage all registered customers.</p>
+      </div>
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search customers..."
+          [value]="searchTerm()"
+          (input)="onSearchChange($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading customers...</p>
+      </div>
+    }
+    @else {
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>Created Date</th>
+              @if (canEdit || isAdmin) {
+                <th>Actions</th>
+              }
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (customer of filteredCustomers(); track customer.customerId) {
+              <tr>
+                <td>
+                  <div class="customer-info">
+                    <div class="customer-avatar">
+                      {{ customer.customerName.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <strong>{{ customer.customerName }}</strong>
+                      <small>ID: {{ customer.customerId }}</small>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  {{ customer.email || '—' }}
+                </td>
+
+                <td>
+                  {{ customer.phone || '—' }}
+                </td>
+
+                <td class="address-cell">
+                  {{ customer.address || '—' }}
+                </td>
+
+                <td>
+                  {{ customer.createdAt | date:'dd MMM yyyy' }}
+                </td>
+
+                @if (canEdit || isAdmin) {
+                  <td>
+                    <div class="action-buttons">
+
+                      @if (canEdit) {
+                        <button
+                          class="action-btn edit"
+                          title="Edit Customer"
+                          (click)="openEditForm(customer)">
+                          <i class="bi bi-pencil-square"></i>
+                        </button>
+                      }
+
+                      @if (isAdmin) {
+                        <button
+                          class="action-btn delete"
+                          title="Delete Customer"
+                          (click)="deleteCustomer(customer)">
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      }
+
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+            @empty {
+              <tr>
+                <td colspan="6" class="empty-state">
+                  <i class="bi bi-people"></i>
+                  <h4>No Customers Found</h4>
+                  <p>
+                    {{
+                      searchTerm()
+                        ? 'Try another search term.'
+                        : 'Add your first customer to get started.'
+                    }}
+                  </p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <div class="table-footer">
+      Showing {{ filteredCustomers().length }} of {{ totalCustomers() }} customers
+    </div>
+
+  </div>
+
+</div>
+
+
+@if (showForm()) {
+  <div class="modal-backdrop" (click)="closeForm()">
+
+    <div class="customer-modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <h3>
+            {{ isEditMode() ? 'Edit Customer' : 'Add Customer' }}
+          </h3>
+          <p>
+            {{
+              isEditMode()
+                ? 'Update customer information.'
+                : 'Enter the new customer details.'
+            }}
+          </p>
+        </div>
+
+        <button class="close-btn" (click)="closeForm()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveCustomer()">
+
+        <div class="form-body">
+
+          <div class="form-group">
+            <label>Customer Name <span>*</span></label>
+            <input
+              type="text"
+              name="customerName"
+              [(ngModel)]="formData.customerName"
+              placeholder="Enter customer name"
+              maxlength="150"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Email Address</label>
+            <input
+              type="email"
+              name="email"
+              [(ngModel)]="formData.email"
+              placeholder="example@email.com"
+              maxlength="150"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              [(ngModel)]="formData.phone"
+              placeholder="Enter phone number"
+              maxlength="20"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Address</label>
+            <textarea
+              name="address"
+              [(ngModel)]="formData.address"
+              placeholder="Enter customer address"
+              maxlength="500"
+              rows="3">
+            </textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn-secondary"
+            [disabled]="isSaving()"
+            (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="isSaving()">
+            @if (isSaving()) {
+              <span class="button-spinner"></span>
+              Saving...
+            }
+            @else {
+              <i class="bi bi-check-lg"></i>
+              {{ isEditMode() ? 'Update Customer' : 'Save Customer' }}
+            }
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+}

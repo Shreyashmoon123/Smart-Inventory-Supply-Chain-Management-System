@@ -1,0 +1,348 @@
+<div class="sales-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Sales Orders</h2>
+      <p>Manage customer orders and sales operations.</p>
+    </div>
+
+    <button
+      *ngIf="canCreate"
+      class="btn btn-primary"
+      (click)="openCreateForm()">
+      <i class="bi bi-plus-lg me-2"></i>
+      Create Sales Order
+    </button>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible">
+    {{ successMessage }}
+    <button class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible">
+    {{ errorMessage }}
+    <button class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-receipt"></i></div>
+      <div>
+        <span>Total Orders</span>
+        <h3>{{ totalOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <span>Pending Orders</span>
+        <h3>{{ pendingOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <span>Delivered Orders</span>
+        <h3>{{ completedOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="bi bi-currency-rupee"></i></div>
+      <div>
+        <span>Total Sales</span>
+        <h3>{{ totalSales | currency:'INR':'symbol':'1.0-0' }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-card">
+
+    <div class="table-toolbar">
+      <div>
+        <h5>All Sales Orders</h5>
+        <small>View and manage customer orders</small>
+      </div>
+
+      <div class="filters">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search order or customer..."
+          [(ngModel)]="searchTerm">
+
+        <select class="form-select" [(ngModel)]="statusFilter">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Processing">Processing</option>
+          <option value="Shipped">Shipped</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <button class="btn btn-light border" (click)="loadOrders()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner-border text-primary"></div>
+      <p>Loading sales orders...</p>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Order Date</th>
+            <th>Items</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let order of filteredOrders">
+            <td class="order-id">#{{ order.salesOrderId }}</td>
+            <td>{{ order.customerName }}</td>
+            <td>{{ order.orderDate | date:'dd MMM yyyy' }}</td>
+            <td>{{ order.items?.length ?? 0 }}</td>
+            <td class="amount">
+              {{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="order.status.toLowerCase()">
+                {{ order.status }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  class="btn btn-sm btn-light"
+                  title="View Details"
+                  (click)="viewDetails(order)">
+                  <i class="bi bi-eye"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && order.status === 'Pending'"
+                  class="btn btn-sm btn-success"
+                  title="Confirm"
+                  (click)="confirmOrder(order)">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && getNextStatus(order.status) as nextStatus"
+                  class="btn btn-sm btn-primary"
+                  [title]="'Move to ' + nextStatus"
+                  (click)="updateOrderStatus(order, nextStatus)">
+                  <i class="bi bi-arrow-right"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && order.status === 'Pending'"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Cancel"
+                  (click)="cancelOrder(order)">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredOrders.length === 0">
+            <td colspan="7" class="empty-state">
+              <i class="bi bi-receipt"></i>
+              <p>No sales orders found.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE ORDER MODAL -->
+<div class="modal-backdrop-custom" *ngIf="showForm">
+  <div class="custom-modal large-modal">
+
+    <div class="modal-header-custom">
+      <div>
+        <h5>Create Sales Order</h5>
+        <p>Create a new order for a customer.</p>
+      </div>
+      <button class="btn-close" (click)="closeForm()"></button>
+    </div>
+
+    <div class="modal-body-custom">
+
+      <div class="alert alert-info">
+        Order confirmation deducts stock from Warehouse ID 1.
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Customer *</label>
+        <select class="form-select" [(ngModel)]="customerId">
+          <option [ngValue]="0">Select Customer</option>
+          <option *ngFor="let customer of customers"
+            [ngValue]="customer.customerId">
+            {{ customer.customerName }}
+          </option>
+        </select>
+      </div>
+
+      <div class="items-heading">
+        <h6>Order Items</h6>
+        <button class="btn btn-sm btn-outline-primary" (click)="addItem()">
+          <i class="bi bi-plus-lg me-1"></i>Add Product
+        </button>
+      </div>
+
+      <div class="order-item-row" *ngFor="let item of formItems; let i = index">
+
+        <div class="item-product">
+          <label class="form-label">Product *</label>
+          <select class="form-select" [(ngModel)]="item.productId">
+            <option [ngValue]="0">Select Product</option>
+            <option *ngFor="let product of products"
+              [ngValue]="product.productId">
+              {{ product.productName }} ({{ product.sku }})
+            </option>
+          </select>
+        </div>
+
+        <div class="item-quantity">
+          <label class="form-label">Quantity *</label>
+          <input
+            type="number"
+            min="1"
+            class="form-control"
+            [(ngModel)]="item.quantity">
+        </div>
+
+        <div class="item-price">
+          <label class="form-label">Unit Price</label>
+          <div class="price-value">
+            {{ getProductPrice(item.productId) | currency:'INR' }}
+          </div>
+        </div>
+
+        <div class="item-total">
+          <label class="form-label">Total</label>
+          <div class="price-value">
+            {{ getItemTotal(item) | currency:'INR' }}
+          </div>
+        </div>
+
+        <button
+          class="btn btn-outline-danger remove-item"
+          [disabled]="formItems.length === 1"
+          (click)="removeItem(i)">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+
+      <div class="mb-3 mt-3">
+        <label class="form-label">Notes</label>
+        <textarea
+          class="form-control"
+          rows="3"
+          placeholder="Optional order notes..."
+          [(ngModel)]="notes"></textarea>
+      </div>
+
+      <div class="order-total">
+        <span>Estimated Total</span>
+        <strong>{{ estimatedTotal | currency:'INR':'symbol':'1.2-2' }}</strong>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger mt-3">
+        {{ errorMessage }}
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button class="btn btn-light border" (click)="closeForm()">Cancel</button>
+      <button
+        class="btn btn-primary"
+        [disabled]="saving"
+        (click)="createOrder()">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+        Create Order
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER DETAILS MODAL -->
+<div class="modal-backdrop-custom" *ngIf="showDetails && selectedOrder">
+  <div class="custom-modal large-modal">
+
+    <div class="modal-header-custom">
+      <div>
+        <h5>Sales Order #{{ selectedOrder.salesOrderId }}</h5>
+        <p>{{ selectedOrder.customerName }}</p>
+      </div>
+      <button class="btn-close" (click)="closeDetails()"></button>
+    </div>
+
+    <div class="modal-body-custom">
+      <div class="details-grid">
+        <div>
+          <span>Order Date</span>
+          <strong>{{ selectedOrder.orderDate | date:'dd MMM yyyy, hh:mm a' }}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{{ selectedOrder.status }}</strong>
+        </div>
+        <div>
+          <span>Total Amount</span>
+          <strong>{{ selectedOrder.totalAmount | currency:'INR' }}</strong>
+        </div>
+      </div>
+
+      <h6 class="mt-4 mb-3">Order Products</h6>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>SKU</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedOrder.items">
+              <td>{{ item.productName }}</td>
+              <td>{{ item.sku }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.unitPrice | currency:'INR' }}</td>
+              <td>{{ item.totalPrice | currency:'INR' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="selectedOrder.notes" class="notes-box">
+        <strong>Notes:</strong> {{ selectedOrder.notes }}
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button class="btn btn-light border" (click)="closeDetails()">Close</button>
+    </div>
+  </div>
+</div>

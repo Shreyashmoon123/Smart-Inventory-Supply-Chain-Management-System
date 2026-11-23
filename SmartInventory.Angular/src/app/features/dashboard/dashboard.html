@@ -1,0 +1,250 @@
+
+<div class="dashboard-page">
+
+  <div class="page-heading">
+    <div>
+      <h2>Dashboard</h2>
+      <p>Here's what's happening with your business today.</p>
+    </div>
+
+    <button class="refresh-button" (click)="refreshDashboard()">
+      <i class="bi bi-arrow-clockwise"></i>
+      Refresh
+    </button>
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-warning">
+    {{ errorMessage() }}
+  </div>
+
+  <div *ngIf="isSummaryLoading()" class="loading-message">
+    <span class="spinner-border spinner-border-sm me-2"></span>
+    Loading dashboard summary...
+  </div>
+
+  <ng-container *ngIf="summary() as data">
+
+    <div class="section-heading">
+      <h5>Business Overview</h5>
+      <span>Live summary</span>
+    </div>
+
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon blue"><i class="bi bi-box-seam"></i></div>
+          <span class="stat-label">Products</span>
+        </div>
+        <h3>{{ data.totalProducts | number }}</h3>
+        <p>Total active products</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon purple"><i class="bi bi-tags"></i></div>
+          <span class="stat-label">Categories</span>
+        </div>
+        <h3>{{ data.totalCategories | number }}</h3>
+        <p>Product categories</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon orange"><i class="bi bi-truck"></i></div>
+          <span class="stat-label">Suppliers</span>
+        </div>
+        <h3>{{ data.totalSuppliers | number }}</h3>
+        <p>Active suppliers</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon green"><i class="bi bi-building"></i></div>
+          <span class="stat-label">Warehouses</span>
+        </div>
+        <h3>{{ data.totalWarehouses | number }}</h3>
+        <p>Active warehouses</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon red"><i class="bi bi-exclamation-triangle"></i></div>
+          <span class="stat-label">Low Stock</span>
+        </div>
+        <h3>{{ data.lowStockItems | number }}</h3>
+        <p>Items need attention</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon teal"><i class="bi bi-people"></i></div>
+          <span class="stat-label">Customers</span>
+        </div>
+        <h3>{{ data.totalCustomers | number }}</h3>
+        <p>Registered customers</p>
+      </div>
+
+    </div>
+
+    <div class="section-heading">
+      <h5>Inventory & Orders</h5>
+    </div>
+
+    <div class="overview-grid">
+
+      <div class="overview-card">
+        <div class="overview-icon blue"><i class="bi bi-boxes"></i></div>
+        <div>
+          <span>Total Inventory Quantity</span>
+          <h3>{{ data.totalInventoryQuantity | number:'1.0-2' }}</h3>
+        </div>
+      </div>
+
+      <div class="overview-card">
+        <div class="overview-icon orange"><i class="bi bi-cart"></i></div>
+        <div>
+          <span>Pending Purchase Orders</span>
+          <h3>{{ data.pendingPurchaseOrders | number }}</h3>
+        </div>
+      </div>
+
+      <div class="overview-card">
+        <div class="overview-icon purple"><i class="bi bi-cart-check"></i></div>
+        <div>
+          <span>Pending Sales Orders</span>
+          <h3>{{ data.pendingSalesOrders | number }}</h3>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="financial-grid">
+
+      <div class="financial-card">
+        <div class="financial-icon sales"><i class="bi bi-graph-up-arrow"></i></div>
+        <div>
+          <span>Total Sales</span>
+          <h3>{{ data.totalSales | currency:'INR':'symbol':'1.0-2' }}</h3>
+        </div>
+      </div>
+
+      <div class="financial-card">
+        <div class="financial-icon purchases"><i class="bi bi-bag-check"></i></div>
+        <div>
+          <span>Total Purchases</span>
+          <h3>{{ data.totalPurchases | currency:'INR':'symbol':'1.0-2' }}</h3>
+        </div>
+      </div>
+
+    </div>
+
+  </ng-container>
+
+  <div class="data-grid">
+
+    <div class="data-card">
+
+      <div class="card-heading">
+        <div>
+          <h5>Low Stock Products</h5>
+          <p>Products requiring stock replenishment</p>
+        </div>
+
+        <span class="count-badge">
+          {{ lowStockProducts().length }}
+        </span>
+      </div>
+
+      <div *ngIf="isLowStockLoading()" class="table-loading">
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        Loading products...
+      </div>
+
+      <div class="table-responsive" *ngIf="!isLowStockLoading()">
+        <table class="table dashboard-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>SKU</th>
+              <th>Warehouse</th>
+              <th>Quantity</th>
+              <th>Reorder Level</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let product of lowStockProducts()">
+              <td class="product-name">{{ product.productName }}</td>
+              <td>{{ product.sku }}</td>
+              <td>{{ product.warehouseName }}</td>
+              <td><span class="quantity-danger">{{ product.quantity }}</span></td>
+              <td>{{ product.reorderLevel }}</td>
+            </tr>
+
+            <tr *ngIf="lowStockProducts().length === 0">
+              <td colspan="5" class="empty-state">
+                No low-stock products found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="data-card">
+
+      <div class="card-heading">
+        <div>
+          <h5>Recent Transactions</h5>
+          <p>Latest stock movement activity</p>
+        </div>
+
+        <span class="count-badge">
+          {{ recentTransactions().length }}
+        </span>
+      </div>
+
+      <div *ngIf="isTransactionsLoading()" class="table-loading">
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        Loading transactions...
+      </div>
+
+      <div class="table-responsive" *ngIf="!isTransactionsLoading()">
+        <table class="table dashboard-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Warehouse</th>
+              <th>Type</th>
+              <th>Quantity</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let transaction of recentTransactions()">
+              <td class="product-name">{{ transaction.productName }}</td>
+              <td>{{ transaction.warehouseName }}</td>
+              <td>
+                <span class="transaction-type">{{ transaction.transactionType }}</span>
+              </td>
+              <td>{{ transaction.quantity }}</td>
+              <td>{{ transaction.transactionDate | date:'dd MMM yyyy, h:mm a' }}</td>
+            </tr>
+
+            <tr *ngIf="recentTransactions().length === 0">
+              <td colspan="5" class="empty-state">
+                No recent transactions found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

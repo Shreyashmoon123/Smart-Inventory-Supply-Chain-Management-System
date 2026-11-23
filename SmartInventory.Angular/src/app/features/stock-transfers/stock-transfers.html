@@ -1,0 +1,438 @@
+
+<div class="stock-transfer-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Stock Transfers</h2>
+      <p>Transfer products between your warehouses.</p>
+    </div>
+
+    <button class="btn-primary-custom" (click)="openCreateForm()">
+      <i class="bi bi-plus-lg"></i>
+      Create Transfer
+    </button>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert alert-success" *ngIf="successMessage">
+    <i class="bi bi-check-circle"></i>
+    {{ successMessage }}
+    <button type="button" (click)="successMessage = ''">×</button>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-circle"></i>
+    {{ errorMessage }}
+    <button type="button" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- Statistics -->
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon pending-icon">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div>
+        <span>Pending</span>
+        <h3>{{ pendingCount }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon approved-icon">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <div>
+        <span>Approved</span>
+        <h3>{{ approvedCount }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon transit-icon">
+        <i class="bi bi-truck"></i>
+      </div>
+      <div>
+        <span>In Transit</span>
+        <h3>{{ inTransitCount }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon completed-icon">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <span>Completed</span>
+        <h3>{{ completedCount }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Transfer List -->
+  <div class="content-card">
+
+    <div class="content-header">
+      <div>
+        <h5>All Stock Transfers</h5>
+        <p>View and manage warehouse transfers</p>
+      </div>
+
+      <button class="btn-refresh" (click)="loadTransfers()" [disabled]="loading">
+        <i class="bi bi-arrow-clockwise"></i>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-row">
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search warehouse or transfer ID..."
+          [(ngModel)]="searchText"
+        />
+      </div>
+
+      <select class="filter-select" [(ngModel)]="statusFilter">
+        <option value="All">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="InTransit">In Transit</option>
+        <option value="Completed">Completed</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner-border text-primary"></div>
+      <p>Loading stock transfers...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive" *ngIf="!loading">
+
+      <table class="transfer-table">
+        <thead>
+          <tr>
+            <th>Transfer ID</th>
+            <th>Source Warehouse</th>
+            <th>Destination Warehouse</th>
+            <th>Items</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let transfer of filteredTransfers">
+
+            <td>
+              <strong>#TR-{{ transfer.stockTransferId }}</strong>
+            </td>
+
+            <td>
+              <div class="warehouse-cell">
+                <i class="bi bi-building"></i>
+                {{ transfer.sourceWarehouseName }}
+              </div>
+            </td>
+
+            <td>
+              <div class="warehouse-cell">
+                <i class="bi bi-building"></i>
+                {{ transfer.destinationWarehouseName }}
+              </div>
+            </td>
+
+            <td>{{ transfer.items?.length || 0 }} items</td>
+
+            <td>{{ transfer.transferDate | date:'dd MMM yyyy' }}</td>
+
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(transfer.status)">
+                {{ transfer.status === 'InTransit' ? 'In Transit' : transfer.status }}
+              </span>
+            </td>
+
+            <td>
+              <button
+                class="btn-action"
+                title="View Details"
+                (click)="openDetails(transfer)"
+              >
+                <i class="bi bi-eye"></i>
+              </button>
+            </td>
+
+          </tr>
+
+          <tr *ngIf="filteredTransfers.length === 0">
+            <td colspan="7" class="empty-state">
+              <i class="bi bi-inbox"></i>
+              <h6>No stock transfers found</h6>
+              <p>Try changing your search or create a new transfer.</p>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- Create Transfer Modal -->
+  <div class="modal-backdrop-custom" *ngIf="showCreateForm">
+
+    <div class="custom-modal create-modal">
+
+      <div class="modal-header-custom">
+        <div>
+          <h4>Create Stock Transfer</h4>
+          <p>Move products from one warehouse to another.</p>
+        </div>
+
+        <button class="close-btn" (click)="closeCreateForm()">×</button>
+      </div>
+
+      <div class="modal-body-custom">
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>Source Warehouse *</label>
+            <select [(ngModel)]="form.sourceWarehouseId">
+              <option [ngValue]="0">Select Source Warehouse</option>
+              <option
+                *ngFor="let warehouse of warehouses"
+                [ngValue]="warehouse.warehouseId"
+              >
+                {{ warehouse.warehouseName }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Destination Warehouse *</label>
+            <select [(ngModel)]="form.destinationWarehouseId">
+              <option [ngValue]="0">Select Destination Warehouse</option>
+              <option
+                *ngFor="let warehouse of warehouses"
+                [ngValue]="warehouse.warehouseId"
+                [disabled]="warehouse.warehouseId === form.sourceWarehouseId"
+              >
+                {{ warehouse.warehouseName }}
+              </option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="items-heading">
+          <h6>Transfer Items</h6>
+          <button class="btn-add-item" (click)="addItem()">
+            <i class="bi bi-plus-lg"></i>
+            Add Item
+          </button>
+        </div>
+
+        <div class="transfer-item-row" *ngFor="let item of form.items; let i = index">
+
+          <div class="form-group product-field">
+            <label>Product *</label>
+            <select [(ngModel)]="item.productId">
+              <option [ngValue]="0">Select Product</option>
+              <option
+                *ngFor="let product of products"
+                [ngValue]="product.productId"
+                [disabled]="isProductAlreadySelected(product.productId, i)"
+              >
+                {{ product.productName }} ({{ product.sku }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group quantity-field">
+            <label>Quantity *</label>
+            <input
+              type="number"
+              min="0.001"
+              step="0.001"
+              [(ngModel)]="item.quantity"
+            />
+          </div>
+
+          <button
+            class="btn-remove-item"
+            title="Remove Item"
+            (click)="removeItem(i)"
+            [disabled]="form.items.length === 1"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+
+        </div>
+
+        <div class="form-group notes-group">
+          <label>Notes</label>
+          <textarea
+            rows="3"
+            maxlength="500"
+            placeholder="Enter transfer notes (optional)"
+            [(ngModel)]="form.notes"
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer-custom">
+        <button class="btn-secondary-custom" (click)="closeCreateForm()">
+          Cancel
+        </button>
+
+        <button
+          class="btn-primary-custom"
+          (click)="createTransfer()"
+          [disabled]="saving"
+        >
+          <span *ngIf="saving" class="spinner-border spinner-border-sm"></span>
+          {{ saving ? 'Creating...' : 'Create Transfer' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Transfer Details Modal -->
+  <div class="modal-backdrop-custom" *ngIf="showDetails && selectedTransfer">
+
+    <div class="custom-modal details-modal">
+
+      <div class="modal-header-custom">
+        <div>
+          <h4>Transfer Details</h4>
+          <p>Transfer #TR-{{ selectedTransfer.stockTransferId }}</p>
+        </div>
+
+        <button class="close-btn" (click)="closeDetails()">×</button>
+      </div>
+
+      <div class="modal-body-custom">
+
+        <div class="details-status">
+          <span class="status-badge" [ngClass]="getStatusClass(selectedTransfer.status)">
+            {{ selectedTransfer.status === 'InTransit' ? 'In Transit' : selectedTransfer.status }}
+          </span>
+
+          <span class="details-date">
+            {{ selectedTransfer.transferDate | date:'dd MMM yyyy, h:mm a' }}
+          </span>
+        </div>
+
+        <div class="warehouse-route">
+
+          <div class="route-box">
+            <span>FROM</span>
+            <h6>{{ selectedTransfer.sourceWarehouseName }}</h6>
+          </div>
+
+          <i class="bi bi-arrow-right route-arrow"></i>
+
+          <div class="route-box">
+            <span>TO</span>
+            <h6>{{ selectedTransfer.destinationWarehouseName }}</h6>
+          </div>
+
+        </div>
+
+        <div class="details-section">
+          <h6>Products</h6>
+
+          <div class="table-responsive">
+            <table class="transfer-table details-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Quantity</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let item of selectedTransfer.items">
+                  <td>{{ item.productName }}</td>
+                  <td>{{ item.sku }}</td>
+                  <td>{{ item.quantity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="notes-display" *ngIf="selectedTransfer.notes">
+          <strong>Notes</strong>
+          <p>{{ selectedTransfer.notes }}</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer-custom action-footer">
+
+        <button class="btn-secondary-custom" (click)="closeDetails()">
+          Close
+        </button>
+
+        <ng-container *ngIf="canManage">
+
+          <button
+            class="btn-action-warning"
+            *ngIf="selectedTransfer.status === 'Pending'"
+            (click)="approveTransfer(selectedTransfer.stockTransferId)"
+          >
+            <i class="bi bi-check-lg"></i>
+            Approve
+          </button>
+
+          <button
+            class="btn-action-info"
+            *ngIf="selectedTransfer.status === 'Approved'"
+            (click)="dispatchTransfer(selectedTransfer.stockTransferId)"
+          >
+            <i class="bi bi-truck"></i>
+            Dispatch
+          </button>
+
+          <button
+            class="btn-action-success"
+            *ngIf="selectedTransfer.status === 'InTransit'"
+            (click)="completeTransfer(selectedTransfer.stockTransferId)"
+          >
+            <i class="bi bi-check-circle"></i>
+            Complete
+          </button>
+
+          <button
+            class="btn-action-danger"
+            *ngIf="selectedTransfer.status === 'Pending' || selectedTransfer.status === 'Approved'"
+            (click)="cancelTransfer(selectedTransfer.stockTransferId)"
+          >
+            <i class="bi bi-x-circle"></i>
+            Cancel Transfer
+          </button>
+
+        </ng-container>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>

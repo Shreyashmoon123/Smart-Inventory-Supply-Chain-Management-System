@@ -1,0 +1,589 @@
+<div class="purchase-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Purchase Management</h2>
+      <p>Manage purchase orders, approvals and product receiving.</p>
+    </div>
+
+    @if (canManage) {
+      <button class="btn-primary" (click)="openCreateModal()">
+        <i class="bi bi-plus-lg"></i>
+        Create Purchase Order
+      </button>
+    }
+  </div>
+
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      <i class="bi bi-exclamation-circle"></i>
+      {{ errorMessage }}
+      <button (click)="errorMessage = ''">&times;</button>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success">
+      <i class="bi bi-check-circle"></i>
+      {{ successMessage }}
+      <button (click)="successMessage = ''">&times;</button>
+    </div>
+  }
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="bi bi-receipt"></i>
+      </div>
+      <div>
+        <span>Total Orders</span>
+        <h3>{{ totalOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div>
+        <span>Pending Orders</span>
+        <h3>{{ pendingOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <div>
+        <span>Approved Orders</span>
+        <h3>{{ approvedOrders }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="bi bi-currency-rupee"></i>
+      </div>
+      <div>
+        <span>Total Purchase Value</span>
+        <h3>{{ totalPurchaseValue | currency:'INR':'symbol':'1.0-2' }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="content-card">
+
+    <div class="toolbar">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search order, supplier or warehouse..."
+          [(ngModel)]="searchTerm"
+          name="searchTerm">
+      </div>
+
+      <select [(ngModel)]="selectedStatus" name="selectedStatus">
+        <option value="All">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Partially Received">Partially Received</option>
+        <option value="Received">Received</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+
+      <button class="btn-refresh" (click)="loadPurchaseOrders()">
+        <i class="bi bi-arrow-clockwise"></i>
+        Refresh
+      </button>
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Supplier</th>
+            <th>Warehouse</th>
+            <th>Order Date</th>
+            <th>Expected Delivery</th>
+            <th>Items</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          @if (isLoading) {
+            <tr>
+              <td colspan="9" class="empty-state">
+                <i class="bi bi-arrow-repeat"></i>
+                Loading purchase orders...
+              </td>
+            </tr>
+          } @else if (filteredOrders.length === 0) {
+            <tr>
+              <td colspan="9" class="empty-state">
+                <i class="bi bi-inbox"></i>
+                No purchase orders found.
+              </td>
+            </tr>
+          } @else {
+            @for (order of filteredOrders; track order.purchaseOrderId) {
+              <tr>
+                <td>
+                  <strong>#PO-{{ order.purchaseOrderId }}</strong>
+                </td>
+
+                <td>{{ order.supplierName }}</td>
+
+                <td>{{ order.warehouseName }}</td>
+
+                <td>{{ order.orderDate | date:'dd MMM yyyy' }}</td>
+
+                <td>
+                  {{ order.expectedDeliveryDate
+                    ? (order.expectedDeliveryDate | date:'dd MMM yyyy')
+                    : '—' }}
+                </td>
+
+                <td>{{ order.items.length }}</td>
+
+                <td class="amount">
+                  {{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+                </td>
+
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+                    {{ getStatusText(order.status) }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+
+                    <button
+                      class="action-btn view"
+                      title="View Details"
+                      (click)="openDetails(order)">
+                      <i class="bi bi-eye"></i>
+                    </button>
+
+                    @if (canEditOrder(order)) {
+                      <button
+                        class="action-btn edit"
+                        title="Edit"
+                        (click)="openEditModal(order)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    }
+
+                    @if (canApproveOrder(order)) {
+                      <button
+                        class="action-btn approve"
+                        title="Approve"
+                        (click)="approveOrder(order)">
+                        <i class="bi bi-check-lg"></i>
+                      </button>
+                    }
+
+                    @if (canReceiveOrder(order)) {
+                      <button
+                        class="action-btn receive"
+                        title="Receive Products"
+                        (click)="openReceiveModal(order)">
+                        <i class="bi bi-box-arrow-in-down"></i>
+                      </button>
+                    }
+
+                    @if (canCancelOrder(order)) {
+                      <button
+                        class="action-btn cancel"
+                        title="Cancel Order"
+                        (click)="cancelOrder(order)">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    }
+
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="table-footer">
+      Showing {{ filteredOrders.length }} of {{ purchaseOrders.length }} purchase orders
+    </div>
+
+  </div>
+
+</div>
+
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+
+    <div class="purchase-modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          @if (modalMode === 'create') {
+            <h3>Create Purchase Order</h3>
+            <p>Create a new order from a supplier.</p>
+          } @else if (modalMode === 'edit') {
+            <h3>Edit Purchase Order #{{ selectedOrder?.purchaseOrderId }}</h3>
+            <p>Update pending purchase order details.</p>
+          } @else if (modalMode === 'receive') {
+            <h3>Receive Purchase Order #{{ selectedOrder?.purchaseOrderId }}</h3>
+            <p>Enter the quantities received from the supplier.</p>
+          } @else {
+            <h3>Purchase Order Details</h3>
+            <p>Order #{{ selectedOrder?.purchaseOrderId }}</p>
+          }
+        </div>
+
+        <button class="close-btn" (click)="closeModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+
+        @if (modalMode === 'create' || modalMode === 'edit') {
+
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label>Supplier <span>*</span></label>
+              <select [(ngModel)]="form.supplierId" name="supplierId">
+                <option [ngValue]="0">Select Supplier</option>
+                @for (supplier of suppliers; track supplier.supplierId) {
+                  <option [ngValue]="supplier.supplierId">
+                    {{ supplier.supplierName }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Warehouse <span>*</span></label>
+              <select [(ngModel)]="form.warehouseId" name="warehouseId">
+                <option [ngValue]="0">Select Warehouse</option>
+                @for (warehouse of warehouses; track warehouse.warehouseId) {
+                  <option [ngValue]="warehouse.warehouseId">
+                    {{ warehouse.warehouseName }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Expected Delivery Date</label>
+              <input
+                type="date"
+                [(ngModel)]="form.expectedDeliveryDate"
+                name="expectedDeliveryDate">
+            </div>
+
+            <div class="form-group full-width">
+              <label>Notes</label>
+              <textarea
+                rows="2"
+                maxlength="500"
+                placeholder="Enter order notes..."
+                [(ngModel)]="form.notes"
+                name="purchaseNotes"></textarea>
+            </div>
+
+          </div>
+
+          <div class="items-heading">
+            <h4>Purchase Order Items</h4>
+
+            <button class="btn-add-item" (click)="addProductRow()">
+              <i class="bi bi-plus-lg"></i>
+              Add Product
+            </button>
+          </div>
+
+          <div class="items-table-wrapper">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Unit Price (₹)</th>
+                  <th>Total (₹)</th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (item of formItems; track $index; let i = $index) {
+                  <tr>
+                    <td>
+                      <select
+                        [(ngModel)]="item.productId"
+                        [name]="'product' + i"
+                        (ngModelChange)="onProductChange(item)">
+                        <option [ngValue]="0">Select Product</option>
+                        @for (product of products; track product.productId) {
+                          <option [ngValue]="product.productId">
+                            {{ product.productName }} ({{ product.sku }})
+                          </option>
+                        }
+                      </select>
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="0.001"
+                        [(ngModel)]="item.quantity"
+                        [name]="'quantity' + i">
+                    </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        [(ngModel)]="item.unitPrice"
+                        [name]="'unitPrice' + i">
+                    </td>
+
+                    <td class="line-total">
+                      {{ (item.quantity * item.unitPrice) | number:'1.2-2' }}
+                    </td>
+
+                    <td>
+                      <button
+                        class="remove-item"
+                        title="Remove Product"
+                        [disabled]="formItems.length === 1"
+                        (click)="removeProductRow(i)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grand-total">
+            <span>Grand Total</span>
+            <strong>{{ formTotal | currency:'INR':'symbol':'1.2-2' }}</strong>
+          </div>
+
+        }
+
+        @if (modalMode === 'receive' && selectedOrder) {
+
+          <div class="receive-info">
+            <div>
+              <span>Supplier</span>
+              <strong>{{ selectedOrder.supplierName }}</strong>
+            </div>
+            <div>
+              <span>Warehouse</span>
+              <strong>{{ selectedOrder.warehouseName }}</strong>
+            </div>
+          </div>
+
+          <div class="items-table-wrapper">
+            <table class="items-table receive-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Ordered</th>
+                  <th>Already Received</th>
+                  <th>Remaining</th>
+                  <th>Receive Now</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (item of receiveItems; track item.purchaseOrderItemId; let i = $index) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.productName }}</strong>
+                      <small>{{ item.sku }}</small>
+                    </td>
+
+                    <td>{{ item.orderedQuantity }}</td>
+                    <td>{{ item.receivedQuantity }}</td>
+                    <td>{{ item.remainingQuantity }}</td>
+
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        [max]="item.remainingQuantity"
+                        step="0.001"
+                        [(ngModel)]="item.receiveNow"
+                        [name]="'receiveQuantity' + i">
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="form-group receive-notes">
+            <label>Receiving Notes</label>
+            <textarea
+              rows="2"
+              maxlength="500"
+              placeholder="Optional receiving notes..."
+              [(ngModel)]="receiveNotes"
+              name="receiveNotes"></textarea>
+          </div>
+
+        }
+
+        @if (modalMode === 'details' && selectedOrder) {
+
+          <div class="details-grid">
+            <div>
+              <span>Purchase Order</span>
+              <strong>#PO-{{ selectedOrder.purchaseOrderId }}</strong>
+            </div>
+
+            <div>
+              <span>Status</span>
+              <strong>
+                <span class="status-badge" [ngClass]="getStatusClass(selectedOrder.status)">
+                  {{ getStatusText(selectedOrder.status) }}
+                </span>
+              </strong>
+            </div>
+
+            <div>
+              <span>Supplier</span>
+              <strong>{{ selectedOrder.supplierName }}</strong>
+            </div>
+
+            <div>
+              <span>Warehouse</span>
+              <strong>{{ selectedOrder.warehouseName }}</strong>
+            </div>
+
+            <div>
+              <span>Order Date</span>
+              <strong>{{ selectedOrder.orderDate | date:'dd MMM yyyy' }}</strong>
+            </div>
+
+            <div>
+              <span>Expected Delivery</span>
+              <strong>
+                {{ selectedOrder.expectedDeliveryDate
+                  ? (selectedOrder.expectedDeliveryDate | date:'dd MMM yyyy')
+                  : '—' }}
+              </strong>
+            </div>
+
+            <div>
+              <span>Received Date</span>
+              <strong>
+                {{ selectedOrder.receivedDate
+                  ? (selectedOrder.receivedDate | date:'dd MMM yyyy')
+                  : '—' }}
+              </strong>
+            </div>
+
+            <div>
+              <span>Total Amount</span>
+              <strong class="details-amount">
+                {{ selectedOrder.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+              </strong>
+            </div>
+          </div>
+
+          <h4 class="details-items-title">Order Items</h4>
+
+          <div class="items-table-wrapper">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Ordered</th>
+                  <th>Received</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (item of selectedOrder.items; track item.purchaseOrderItemId) {
+                  <tr>
+                    <td>{{ item.productName }}</td>
+                    <td>{{ item.sku }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.receivedQuantity }}</td>
+                    <td>{{ item.unitPrice | currency:'INR':'symbol':'1.2-2' }}</td>
+                    <td>{{ item.totalPrice | currency:'INR':'symbol':'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (selectedOrder.notes) {
+            <div class="notes-display">
+              <strong>Notes</strong>
+              <p>{{ selectedOrder.notes }}</p>
+            </div>
+          }
+
+        }
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button class="btn-secondary" (click)="closeModal()" [disabled]="isSaving">
+          Close
+        </button>
+
+        @if (modalMode === 'create' || modalMode === 'edit') {
+          <button
+            class="btn-primary"
+            (click)="savePurchaseOrder()"
+            [disabled]="isSaving">
+            @if (isSaving) {
+              Saving...
+            } @else {
+              {{ modalMode === 'create' ? 'Create Order' : 'Save Changes' }}
+            }
+          </button>
+        }
+
+        @if (modalMode === 'receive') {
+          <button
+            class="btn-primary"
+            (click)="receivePurchaseOrder()"
+            [disabled]="isSaving">
+            @if (isSaving) {
+              Processing...
+            } @else {
+              Confirm Receiving
+            }
+          </button>
+        }
+
+      </div>
+
+    </div>
+  </div>
+}

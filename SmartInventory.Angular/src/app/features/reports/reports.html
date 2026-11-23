@@ -1,0 +1,309 @@
+
+<div class="reports-page">
+
+  <div class="page-header">
+    <div>
+      <h1>Reports & Analytics</h1>
+      <p>Monitor sales, purchases, inventory and stock movements</p>
+    </div>
+
+    <button class="refresh-btn" (click)="loadReport()">
+      <span>↻</span> Refresh
+    </button>
+  </div>
+
+  <!-- Report Tabs -->
+  <div class="report-tabs">
+    <button
+      [class.active]="activeReport === 'sales'"
+      (click)="setReport('sales')">
+      Sales
+    </button>
+
+    <button
+      [class.active]="activeReport === 'purchases'"
+      (click)="setReport('purchases')">
+      Purchases
+    </button>
+
+    <button
+      [class.active]="activeReport === 'inventory'"
+      (click)="setReport('inventory')">
+      Inventory
+    </button>
+
+    <button
+      [class.active]="activeReport === 'stock-transactions'"
+      (click)="setReport('stock-transactions')">
+      Stock Transactions
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <div class="summary-icon sales-icon">₹</div>
+      <div>
+        <span class="summary-label">Total Sales</span>
+        <h2>₹{{ totalSales | number:'1.2-2' }}</h2>
+        <small>{{ salesReports.length }} sales orders</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon purchase-icon">₹</div>
+      <div>
+        <span class="summary-label">Total Purchases</span>
+        <h2>₹{{ totalPurchases | number:'1.2-2' }}</h2>
+        <small>{{ purchaseReports.length }} purchase orders</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon inventory-icon">▦</div>
+      <div>
+        <span class="summary-label">Inventory Quantity</span>
+        <h2>{{ totalInventoryQuantity | number }}</h2>
+        <small>{{ inventoryReports.length }} inventory records</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon lowstock-icon">!</div>
+      <div>
+        <span class="summary-label">Low Stock Items</span>
+        <h2>{{ lowStockCount }}</h2>
+        <small>Items at or below reorder level</small>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Current Report -->
+  <div class="report-panel">
+
+    <div class="panel-header">
+      <div>
+        <h2>{{ reportTitle }}</h2>
+        <p>View and filter your report records</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+
+      <div class="date-filters" *ngIf="showDateFilters">
+        <div class="filter-field">
+          <label>From Date</label>
+          <input type="date" [(ngModel)]="fromDate">
+        </div>
+
+        <div class="filter-field">
+          <label>To Date</label>
+          <input type="date" [(ngModel)]="toDate">
+        </div>
+
+        <button class="apply-btn" (click)="applyFilters()">
+          Apply Filters
+        </button>
+
+        <button class="reset-btn" (click)="resetFilters()">
+          Reset
+        </button>
+      </div>
+
+      <div class="search-field">
+        <span>⌕</span>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          placeholder="Search report records...">
+      </div>
+
+    </div>
+
+    <!-- Error -->
+    <div class="error-message" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="loader"></div>
+      <p>Loading {{ reportTitle.toLowerCase() }}...</p>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="table-wrapper" *ngIf="!loading && activeReport === 'sales'">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Order Date</th>
+            <th>Status</th>
+            <th class="text-right">Total Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of filteredSales">
+            <td class="primary-text">#{{ item.salesOrderId }}</td>
+            <td>{{ item.customerName }}</td>
+            <td>{{ item.orderDate | date:'mediumDate' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="item.status.toLowerCase()">
+                {{ item.status }}
+              </span>
+            </td>
+            <td class="text-right amount">
+              ₹{{ item.totalAmount | number:'1.2-2' }}
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredSales.length === 0">
+            <td colspan="5" class="empty-state">No sales records found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Purchases Table -->
+    <div class="table-wrapper" *ngIf="!loading && activeReport === 'purchases'">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Supplier</th>
+            <th>Warehouse</th>
+            <th>Order Date</th>
+            <th>Status</th>
+            <th class="text-right">Total Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of filteredPurchases">
+            <td class="primary-text">#{{ item.purchaseOrderId }}</td>
+            <td>{{ item.supplierName }}</td>
+            <td>{{ item.warehouseName }}</td>
+            <td>{{ item.orderDate | date:'mediumDate' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="item.status.toLowerCase()">
+                {{ item.status }}
+              </span>
+            </td>
+            <td class="text-right amount">
+              ₹{{ item.totalAmount | number:'1.2-2' }}
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredPurchases.length === 0">
+            <td colspan="6" class="empty-state">No purchase records found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="table-wrapper" *ngIf="!loading && activeReport === 'inventory'">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Warehouse</th>
+            <th class="text-right">Quantity</th>
+            <th class="text-right">Reorder Level</th>
+            <th>Stock Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of filteredInventory">
+            <td class="primary-text">{{ item.productName }}</td>
+            <td>{{ item.sku }}</td>
+            <td>{{ item.warehouseName }}</td>
+            <td class="text-right">{{ item.quantity | number }}</td>
+            <td class="text-right">{{ item.reorderLevel }}</td>
+            <td>
+              <span
+                class="stock-badge"
+                [class.low-stock]="item.isLowStock"
+                [class.in-stock]="!item.isLowStock">
+                {{ item.isLowStock ? 'Low Stock' : 'In Stock' }}
+              </span>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredInventory.length === 0">
+            <td colspan="6" class="empty-state">No inventory records found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Stock Transactions Table -->
+    <div class="table-wrapper" *ngIf="!loading && activeReport === 'stock-transactions'">
+      <table>
+        <thead>
+          <tr>
+            <th>Transaction ID</th>
+            <th>Product</th>
+            <th>Warehouse</th>
+            <th>Transaction Type</th>
+            <th class="text-right">Quantity</th>
+            <th>Reference</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of filteredTransactions">
+            <td class="primary-text">#{{ item.stockTransactionId }}</td>
+            <td>{{ item.productName }}</td>
+            <td>{{ item.warehouseName }}</td>
+            <td>
+              <span class="transaction-type">
+                {{ item.transactionType }}
+              </span>
+            </td>
+            <td class="text-right">{{ item.quantity | number }}</td>
+            <td>
+              <span *ngIf="item.referenceType">
+                {{ item.referenceType }}
+                <span *ngIf="item.referenceId">#{{ item.referenceId }}</span>
+              </span>
+              <span *ngIf="!item.referenceType">—</span>
+            </td>
+            <td>{{ item.transactionDate | date:'medium' }}</td>
+          </tr>
+
+          <tr *ngIf="filteredTransactions.length === 0">
+            <td colspan="7" class="empty-state">No stock transactions found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel-footer" *ngIf="!loading">
+      <span *ngIf="activeReport === 'sales'">
+        Showing {{ filteredSales.length }} of {{ salesReports.length }} records
+      </span>
+
+      <span *ngIf="activeReport === 'purchases'">
+        Showing {{ filteredPurchases.length }} of {{ purchaseReports.length }} records
+      </span>
+
+      <span *ngIf="activeReport === 'inventory'">
+        Showing {{ filteredInventory.length }} of {{ inventoryReports.length }} records
+      </span>
+
+      <span *ngIf="activeReport === 'stock-transactions'">
+        Showing {{ filteredTransactions.length }} of {{ transactionReports.length }} records
+      </span>
+    </div>
+
+  </div>
+</div>

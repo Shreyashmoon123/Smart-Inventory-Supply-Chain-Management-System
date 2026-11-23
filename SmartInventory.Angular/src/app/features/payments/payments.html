@@ -1,0 +1,354 @@
+<div class="payments-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Payments</h2>
+      <p>Track customer payments and outstanding balances.</p>
+    </div>
+
+    <button
+      *ngIf="canCreate"
+      class="btn btn-primary"
+      (click)="openCreateForm()">
+      <i class="bi bi-plus-lg me-2"></i>
+      Record Payment
+    </button>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible">
+    {{ successMessage }}
+    <button class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible">
+    {{ errorMessage }}
+    <button class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div>
+        <span>Total Payments</span>
+        <h3>{{ totalPayments }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="bi bi-currency-rupee"></i>
+      </div>
+      <div>
+        <span>Total Paid</span>
+        <h3>{{ paidAmount | currency:'INR':'symbol':'1.0-0' }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="bi bi-clock-history"></i>
+      </div>
+      <div>
+        <span>Pending Payments</span>
+        <h3>{{ pendingPayments }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon red">
+        <i class="bi bi-exclamation-circle"></i>
+      </div>
+      <div>
+        <span>Failed Payments</span>
+        <h3>{{ failedPayments }}</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="content-card">
+
+    <div class="table-toolbar">
+      <div>
+        <h5>Payment Records</h5>
+        <small>All customer payment transactions</small>
+      </div>
+
+      <div class="filters">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search payment..."
+          [(ngModel)]="searchTerm">
+
+        <select class="form-select" [(ngModel)]="statusFilter">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Paid">Paid</option>
+          <option value="Failed">Failed</option>
+          <option value="Refunded">Refunded</option>
+        </select>
+
+        <button class="btn btn-light border" (click)="loadPayments()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner-border text-primary"></div>
+      <p>Loading payments...</p>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Payment ID</th>
+            <th>Sales Order</th>
+            <th>Payment Date</th>
+            <th>Method</th>
+            <th>Transaction Reference</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let payment of filteredPayments">
+            <td class="payment-id">#{{ payment.paymentId }}</td>
+            <td class="order-link">#{{ payment.salesOrderId }}</td>
+            <td>{{ payment.paymentDate | date:'dd MMM yyyy' }}</td>
+            <td>{{ payment.paymentMethod }}</td>
+            <td>{{ payment.transactionReference || '—' }}</td>
+            <td class="amount">
+              {{ payment.amount | currency:'INR':'symbol':'1.2-2' }}
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="payment.status.toLowerCase()">
+                {{ payment.status }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  class="btn btn-sm btn-light"
+                  title="Payment Summary"
+                  (click)="viewSummary(payment)">
+                  <i class="bi bi-eye"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && payment.status === 'Pending'"
+                  class="btn btn-sm btn-success"
+                  title="Mark Paid"
+                  (click)="updatePaymentStatus(payment, 'Paid')">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && payment.status === 'Pending'"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Mark Failed"
+                  (click)="updatePaymentStatus(payment, 'Failed')">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+
+                <button
+                  *ngIf="canManage && payment.status === 'Paid'"
+                  class="btn btn-sm btn-warning"
+                  title="Refund"
+                  (click)="updatePaymentStatus(payment, 'Refunded')">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredPayments.length === 0">
+            <td colspan="8" class="empty-state">
+              <i class="bi bi-wallet2"></i>
+              <p>No payment records found.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- RECORD PAYMENT MODAL -->
+<div class="modal-backdrop-custom" *ngIf="showForm">
+  <div class="custom-modal">
+
+    <div class="modal-header-custom">
+      <div>
+        <h5>Record Payment</h5>
+        <p>Add a payment against a sales order.</p>
+      </div>
+      <button class="btn-close" (click)="closeForm()"></button>
+    </div>
+
+    <div class="modal-body-custom">
+
+      <div class="mb-3">
+        <label class="form-label">Sales Order *</label>
+        <select
+          class="form-select"
+          [(ngModel)]="salesOrderId"
+          (ngModelChange)="onOrderChange()">
+          <option [ngValue]="0">Select Sales Order</option>
+          <option
+            *ngFor="let order of orders"
+            [ngValue]="order.salesOrderId"
+            [disabled]="order.status === 'Pending' || order.status === 'Cancelled'">
+            #{{ order.salesOrderId }} - {{ order.customerName }}
+            ({{ order.status }})
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="selectedOrder" class="order-info">
+        <div>
+          <span>Order Amount</span>
+          <strong>{{ selectedOrder.totalAmount | currency:'INR' }}</strong>
+        </div>
+        <div>
+          <span>Order Status</span>
+          <strong>{{ selectedOrder.status }}</strong>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Payment Amount *</label>
+        <input
+          type="number"
+          class="form-control"
+          min="0.01"
+          step="0.01"
+          placeholder="Enter payment amount"
+          [(ngModel)]="amount">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Payment Method *</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="e.g. Cash, UPI, Card, Bank Transfer"
+          [(ngModel)]="paymentMethod">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Transaction Reference</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Optional transaction ID"
+          [(ngModel)]="transactionReference">
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+    </div>
+
+    <div class="modal-footer-custom">
+      <button class="btn btn-light border" (click)="closeForm()">Cancel</button>
+      <button
+        class="btn btn-primary"
+        [disabled]="saving"
+        (click)="createPayment()">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+        Record Payment
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- PAYMENT SUMMARY MODAL -->
+<div class="modal-backdrop-custom" *ngIf="showSummary && selectedSummary">
+  <div class="custom-modal large-modal">
+
+    <div class="modal-header-custom">
+      <div>
+        <h5>Payment Summary</h5>
+        <p>Sales Order #{{ selectedSummary.salesOrderId }}</p>
+      </div>
+      <button class="btn-close" (click)="closeSummary()"></button>
+    </div>
+
+    <div class="modal-body-custom">
+
+      <div class="summary-grid">
+        <div>
+          <span>Order Amount</span>
+          <h4>{{ selectedSummary.orderAmount | currency:'INR' }}</h4>
+        </div>
+
+        <div>
+          <span>Total Paid</span>
+          <h4 class="paid-value">{{ selectedSummary.totalPaid | currency:'INR' }}</h4>
+        </div>
+
+        <div>
+          <span>Remaining Amount</span>
+          <h4 class="remaining-value">
+            {{ selectedSummary.remainingAmount | currency:'INR' }}
+          </h4>
+        </div>
+      </div>
+
+      <div class="summary-status">
+        Payment Status:
+        <span class="status-badge"
+          [ngClass]="selectedSummary.paymentStatus.toLowerCase()">
+          {{ selectedSummary.paymentStatus }}
+        </span>
+      </div>
+
+      <h6 class="mt-4 mb-3">Transactions</h6>
+
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Payment ID</th>
+              <th>Date</th>
+              <th>Method</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of selectedSummary.payments">
+              <td>#{{ payment.paymentId }}</td>
+              <td>{{ payment.paymentDate | date:'dd MMM yyyy' }}</td>
+              <td>{{ payment.paymentMethod }}</td>
+              <td>{{ payment.amount | currency:'INR' }}</td>
+              <td>{{ payment.status }}</td>
+            </tr>
+            <tr *ngIf="selectedSummary.payments.length === 0">
+              <td colspan="5" class="text-center text-muted">
+                No transactions found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="modal-footer-custom">
+      <button class="btn btn-light border" (click)="closeSummary()">Close</button>
+    </div>
+
+  </div>
+</div>

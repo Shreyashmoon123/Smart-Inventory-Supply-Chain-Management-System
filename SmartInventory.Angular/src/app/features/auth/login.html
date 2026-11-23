@@ -1,0 +1,76 @@
+<div class="login-page">
+  <div class="login-card">
+
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="bi bi-box-seam"></i>
+      </div>
+
+      <h2>SmartInventory</h2>
+      <p>Inventory & Supply Chain Management</p>
+    </div>
+
+    <div class="login-heading">
+      <h3>Welcome Back</h3>
+      <p>Sign in to access your dashboard</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+
+      <div class="mb-3">
+        <label class="form-label">Email Address</label>
+
+        <input
+          type="email"
+          class="form-control"
+          formControlName="email"
+          placeholder="Enter your email"
+        />
+
+        <small
+          class="text-danger"
+          *ngIf="loginForm.controls.email.touched && loginForm.controls.email.invalid"
+        >
+          Enter a valid email address.
+        </small>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+
+        <input
+          type="password"
+          class="form-control"
+          formControlName="password"
+          placeholder="Enter your password"
+        />
+
+        <small
+          class="text-danger"
+          *ngIf="loginForm.controls.password.touched && loginForm.controls.password.invalid"
+        >
+          Password is required.
+        </small>
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary w-100"
+        [disabled]="isLoading"
+      >
+        <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+      </button>
+
+    </form>
+
+    <div class="login-footer">
+      SmartInventory Management System
+    </div>
+
+  </div>
+</div>
